@@ -1,6 +1,7 @@
 import io.qameta.allure.Step;
 import io.qameta.allure.junit4.DisplayName;
 import io.restassured.RestAssured;
+import io.restassured.http.ContentType;
 import io.restassured.response.Response;
 import org.example.Order;
 import org.junit.After;
@@ -33,6 +34,7 @@ public class CreatingOrderTest {
     private String comment;
     private List<String> color;
     private Response OrderResponse;
+    protected final String ROOT = "/api/v1/orders";
 
     public CreatingOrderTest(String firstName, String lastName, String address, String metroStation, String phone, int rentTime, String deliveryDate, String comment, List color) {
         this.firstName = firstName;
@@ -61,10 +63,10 @@ public class CreatingOrderTest {
     public void checkCreateOrder() {
         Order orderBody = new Order(firstName, lastName, address, metroStation, phone, rentTime, deliveryDate, comment, color);
         OrderResponse = given()
-                .header("Content-type", "application/json")
+                .contentType(ContentType.JSON)
                 .body(orderBody)
                 .when()
-                .post("/api/v1/orders")
+                .post(ROOT)
                 .then().log().all()
                 .extract().response();
         OrderResponse.then().assertThat().body("track", notNullValue())
@@ -75,9 +77,9 @@ public class CreatingOrderTest {
     @Step("Send PUT request to /api/v1/orders/cancel")
     public void cancelOrder() {
         given()
-                .header("Content-type", "application/json")
+                .contentType(ContentType.JSON)
                 .when()
-                .put("/api/v1/orders/cancel?track=" + OrderResponse.jsonPath().getString("track"))
+                .put(ROOT+"/cancel?track=" + OrderResponse.jsonPath().getString("track"))
                 .then().log().all().assertThat().body("ok", equalTo(true));
     }
 }

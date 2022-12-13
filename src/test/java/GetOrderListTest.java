@@ -1,6 +1,7 @@
 import io.qameta.allure.Step;
 import io.qameta.allure.junit4.DisplayName;
 import io.restassured.RestAssured;
+import io.restassured.http.ContentType;
 import io.restassured.response.Response;
 import org.example.JsonForGetListOrder;
 import org.example.Order;
@@ -16,6 +17,7 @@ import static org.hamcrest.Matchers.equalTo;
 
 public class GetOrderListTest {
     private String track;
+    protected final String ROOT = "/api/v1/orders";
 
     @Before
     public void setUp() {
@@ -26,22 +28,22 @@ public class GetOrderListTest {
     @Test
     @DisplayName("Get list of orders")
     public void checkGetOrderList() {
-        JsonForGetListOrder JsonOrder = given()
-                .header("Content-type", "application/json")
+        JsonForGetListOrder jsonOrder = given()
+                .contentType(ContentType.JSON)
                 .queryParam("t", track)
-                .get("/api/v1/orders/track")
+                .get(ROOT + "/track")
                 .body()
                 .as(JsonForGetListOrder.class);
 
-        Assert.assertEquals("Nastya", JsonOrder.getOrder().getFirstName());
-        Assert.assertEquals("SSS", JsonOrder.getOrder().getLastName());
-        Assert.assertEquals("Родионова, 2", JsonOrder.getOrder().getAddress());
-        Assert.assertEquals("Калужская", JsonOrder.getOrder().getMetroStation());
-        Assert.assertEquals("+78001112233", JsonOrder.getOrder().getPhone());
-        Assert.assertEquals(5, JsonOrder.getOrder().getRentTime());
-        Assert.assertTrue(JsonOrder.getOrder().getDeliveryDate().contains("2022-12-10"));
-        Assert.assertEquals("Жду заказ", JsonOrder.getOrder().getComment());
-        Assert.assertEquals("GREY", JsonOrder.getOrder().getColor().get(0));
+        Assert.assertEquals("Nastya", jsonOrder.getOrder().getFirstName());
+        Assert.assertEquals("SSS", jsonOrder.getOrder().getLastName());
+        Assert.assertEquals("Родионова, 2", jsonOrder.getOrder().getAddress());
+        Assert.assertEquals("Калужская", jsonOrder.getOrder().getMetroStation());
+        Assert.assertEquals("+78001112233", jsonOrder.getOrder().getPhone());
+        Assert.assertEquals(5, jsonOrder.getOrder().getRentTime());
+        Assert.assertTrue(jsonOrder.getOrder().getDeliveryDate().contains("2022-12-10"));
+        Assert.assertEquals("Жду заказ", jsonOrder.getOrder().getComment());
+        Assert.assertEquals("GREY", jsonOrder.getOrder().getColor().get(0));
     }
 
     @Step("Create order. Send POST requests to /api/v1/orders")
@@ -49,10 +51,10 @@ public class GetOrderListTest {
         Order order = new Order("Nastya", "SSS", "Родионова, 2", "Калужская", "+78001112233",
                 5, "2022-12-10", "Жду заказ", List.of("GREY"));
         return given()
-                .header("Content-type", "application/json")
+                .contentType(ContentType.JSON)
                 .body(order)
                 .when()
-                .post("/api/v1/orders")
+                .post(ROOT)
                 .then().log().all().assertThat().statusCode(201)
                 .extract().response();
     }
@@ -61,7 +63,7 @@ public class GetOrderListTest {
     @Step("Send PUT request to /api/v1/orders/cancel")
     public void cancelOrder() {
         given()
-                .header("Content-type", "application/json")
+                .contentType(ContentType.JSON)
                 .when()
                 .put("/api/v1/orders/cancel?track=" + track)
                 .then().log().all().assertThat().body("ok", equalTo(true));

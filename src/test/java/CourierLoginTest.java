@@ -1,10 +1,13 @@
 import io.qameta.allure.Step;
 import io.qameta.allure.junit4.DisplayName;
 import io.restassured.RestAssured;
+import io.restassured.http.ContentType;
 import io.restassured.response.Response;
 import org.junit.After;
 import org.junit.Before;
 import org.junit.Test;
+
+import java.util.Map;
 
 import static io.restassured.RestAssured.given;
 import static org.hamcrest.Matchers.equalTo;
@@ -15,6 +18,8 @@ public class CourierLoginTest {
     private String login;
     private String password;
     private String firstName;
+
+    protected final String ROOT = "/api/v1/courier";
 
     @Before
     public void setUp() {
@@ -31,7 +36,8 @@ public class CourierLoginTest {
     public void checkCourierLogin() {
         Response loginResponse = loginCourier(login, password);
 
-        loginResponse.then().log().all().assertThat().body("id", notNullValue()).statusCode(200);
+        loginResponse.then().log().all().assertThat().body("id", notNullValue())
+                .statusCode(200);
     }
 
     @Test
@@ -39,7 +45,8 @@ public class CourierLoginTest {
     public void checkCourierLoginWithoutPassword() {
         Response loginResponse = loginCourier(login, null);
 
-        loginResponse.then().log().all().assertThat().body("message", equalTo("Учетная запись не найдена")).statusCode(404);
+        loginResponse.then().log().all().assertThat().body("message", equalTo("Учетная запись не найдена"))
+                .statusCode(404);
     }
 
     @Test
@@ -47,15 +54,23 @@ public class CourierLoginTest {
     public void checkCourierLoginWithWrongPassword() {
         Response loginResponse = loginCourier(login, password + "Z");
 
-        loginResponse.then().assertThat().body("message", equalTo("Учетная запись не найдена")).statusCode(404);
+        loginResponse.then().assertThat().body("message", equalTo("Учетная запись не найдена"))
+                .statusCode(404);
     }
 
     @Test
     @DisplayName("Courier login without required field")
     public void checkCourierLoginWithoutRequiredField() {
-        String loginRequest = "{\"password\":\"null\"}";
-        Response loginResponse = given().header("Content-type", "application/json").body(loginRequest).when().post("/api/v1/courier/login").then().log().all().extract().response();
-        loginResponse.then().assertThat().body("message", equalTo("Недостаточно данных для входа")).statusCode(400);
+        var loginRequest = Map.of("password", "null");
+        Response loginResponse = given()
+                .contentType(ContentType.JSON)
+                .body(loginRequest)
+                .when()
+                .post(ROOT + "/login")
+                .then().log().all()
+                .extract().response();
+        loginResponse.then().assertThat().body("message", equalTo("Недостаточно данных для входа"))
+                .statusCode(400);
     }
 
     @Test
@@ -63,26 +78,45 @@ public class CourierLoginTest {
     public void checkCourierLoginAnotherUser() {
         Response loginResponse = loginCourier(login + "Z", password);
 
-        loginResponse.then().log().all().assertThat().body("message", equalTo("Учетная запись не найдена")).statusCode(404);
+        loginResponse.then().log().all().assertThat().body("message", equalTo("Учетная запись не найдена"))
+                .statusCode(404);
     }
+
 
     @Step("Send POST request to /api/v1/courier")
     public Response createCourier(String login, String password, String firstName) {
-        String requestFields = "{ \"login\" : \"" + login + "\", \"password\":\"" + password + "\", \"firstName\":\"" + firstName + "\"}";
+        var requestFields = Map.of("login", login, "password", password, "firstName", firstName);
 
-        return given().header("Content-type", "application/json").body(requestFields).when().post("/api/v1/courier").then().extract().response();
+        return given()
+                .contentType(ContentType.JSON)
+                .body(requestFields)
+                .when()
+                .post(ROOT)
+                .then()
+                .extract().response();
     }
 
     @Step("Send POST request to /api/v1/courier/login")
     public Response loginCourier(String login, String password) {
-        String loginRequest = "{ \"login\" : \"" + login + "\", \"password\":\"" + password + "\"}";
+        var loginRequest = Map.of("login", login, "password", password);
 
-        return given().header("Content-type", "application/json").body(loginRequest).when().post("/api/v1/courier/login").then().extract().response();
+        return given()
+                .contentType(ContentType.JSON)
+                .body(loginRequest)
+                .when()
+                .post(ROOT + "/login")
+                .then()
+                .extract()
+                .response();
     }
 
     @After
     @Step("Delete courier")
     public void deleteCourier() {
-        given().header("Content-type", "application/json").when().delete("/api/v1/courier/" + loginCourier(login, password).jsonPath().getString("id")).then().extract().response();
+        given()
+                .contentType(ContentType.JSON)
+                .when().delete(ROOT + loginCourier(login, password).jsonPath().getString("id"))
+                .then()
+                .extract().response();
     }
 }

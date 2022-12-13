@@ -1,11 +1,14 @@
 import io.qameta.allure.Step;
 import io.qameta.allure.junit4.DisplayName;
 import io.restassured.RestAssured;
+import io.restassured.http.ContentType;
 import io.restassured.response.Response;
 import org.junit.After;
 import org.junit.Assert;
 import org.junit.Before;
 import org.junit.Test;
+
+import java.util.Map;
 
 import static io.restassured.RestAssured.given;
 
@@ -14,6 +17,8 @@ public class CreatingCourierTest {
     private String login;
     private String password;
     private String firstName;
+
+    protected final String ROOT = "/api/v1/courier";
 
     @Before
     public void setUp() {
@@ -46,7 +51,7 @@ public class CreatingCourierTest {
     @Test
     @DisplayName("Create courier with required fields")
     public void checkCreateCourierWithRequiredFields() {
-        Response courier = createCourier(login, password, null);
+        Response courier = createCourier(login, password, firstName);
         Assert.assertEquals(201, courier.statusCode());
         Assert.assertEquals("true", courier.jsonPath().getString("ok"));
     }
@@ -54,9 +59,15 @@ public class CreatingCourierTest {
     @Test
     @DisplayName("Return error if one of fields is missing")
     public void checkCreateCourierWithoutField() {
-        String requestBody = "{ \"password\" : \"" + password + "\", \"firstName\":\"" + firstName + "\"}";
+        var requestBody = Map.of("password", password, "firstName", firstName);
 
-        Response response = given().header("Content-type", "application/json").body(requestBody).when().post("/api/v1/courier").then().log().all().extract().response();
+        Response response = given()
+                .contentType(ContentType.JSON)
+                .body(requestBody)
+                .when()
+                .post(ROOT)
+                .then().log().all()
+                .extract().response();
 
         Assert.assertEquals(400, response.statusCode());
         Assert.assertEquals("Недостаточно данных для создания учетной записи", response.jsonPath().getString("message"));
@@ -73,22 +84,38 @@ public class CreatingCourierTest {
 
     @Step("Send POST request to /api/v1/courier")
     public Response createCourier(String login, String password, String firstName) {
-        String requestFields = "{ \"login\" : \"" + login + "\", \"password\":\"" + password + "\", \"firstName\":\"" + firstName + "\"}";
+        var requestFields = Map.of("login", login, "password", password, "firstName", firstName);
 
-        return given().header("Content-type", "application/json").body(requestFields).when().post("/api/v1/courier").then().extract().response();
+        return given()
+                .contentType(ContentType.JSON)
+                .body(requestFields)
+                .when()
+                .post(ROOT)
+                .then()
+                .extract().response();
     }
 
     @Step("Send POST request to /api/v1/courier/login")
-    public Response loginCourier() {
-        String loginRequest = "{ \"login\" : \"" + login + "\", \"password\":\"" + password + "\"}";
+    public Response loginCourier(String login, String password) {
+        var loginRequest = Map.of("login", login, "password", password);
 
-        return given().header("Content-type", "application/json").body(loginRequest).when().post("/api/v1/courier/login").then().extract().response();
+        return given()
+                .contentType(ContentType.JSON)
+                .body(loginRequest)
+                .when()
+                .post(ROOT + "/login")
+                .then()
+                .extract()
+                .response();
     }
 
     @After
     @Step("Delete courier")
     public void deleteCourier() {
-        given().header("Content-type", "application/json").when().delete("/api/v1/courier/" + loginCourier().jsonPath().getString("id")).then().extract().response();
+        given()
+                .contentType(ContentType.JSON)
+                .when().delete(ROOT + loginCourier(login, password).jsonPath().getString("id"))
+                .then()
+                .extract().response();
     }
-
 }
