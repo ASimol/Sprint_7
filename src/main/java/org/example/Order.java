@@ -1,5 +1,6 @@
 package org.example;
 
+import java.time.LocalDate;
 import java.util.List;
 
 public class Order {
@@ -14,7 +15,7 @@ public class Order {
     private String comment;
     private List<String> color;
 
-    public Order(String firstName, String lastName, String address, String metroStation, String phone, int rentTime, String deliveryDate, String comment, List<String> color) {
+    public Order() {
         this.firstName = firstName;
         this.lastName = lastName;
         this.address = address;
@@ -78,8 +79,8 @@ public class Order {
         return deliveryDate;
     }
 
-    public void setDeliveryDate(String deliveryDate) {
-        this.deliveryDate = deliveryDate;
+    public void setDeliveryDate(LocalDate deliveryDate) {
+        this.deliveryDate = String.valueOf(deliveryDate);
     }
 
     public String getComment() {
